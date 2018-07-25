@@ -1,0 +1,64 @@
+#!bin/bash/
+
+echo "running tracking script"
+
+# Input path to data
+#read -p "Path to DARWIN data:" path_darwin
+path_darwin=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
+echo "Data files in $path_darwin"
+
+# ---------------------------------------------------------------------------------------
+#             LOOP OVER FILES
+# ---------------------------------------------------------------------------------------
+# Path to copy output to
+path_out=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/Radar_Tracking_Data
+
+
+# year min: 1998; year max: 2017
+# months: 01, 02, 03, 04, 10, 11, 12
+read -p "year min: " year_min; read -p "year max: " year_max
+read -p "month min: " month_min; read -p "month max: " month_max
+read -p "day min: " day_min; read -p "day max: " day_max
+
+# Loop over all files in repository
+#for year in {$year_min..$year_max}
+#for year in {1998..2017}
+for (( year=$year_min; year<=$year_max; year++ ))
+  do
+  echo "year: $year"
+  #for month in {1..12}
+  for (( month=$month_min; month<=$month_max; month++ )) 
+    do
+    #echo "month: $month"
+    #for day in {1..31}
+    for (( day=$day_min; day<=day_max; day++ ))
+      do
+      #echo $day
+
+      date=$(($year*10000+$month*100+$day))
+      echo "Date: $date"
+  
+      name="CPOL_RADAR_ESTIMATED_RAIN_RATE_${date}.nc"
+      echo $name
+      # --- check if file there ---
+      if [ -f $path_darwin/$name ]
+        then
+        echo "The file ${name} exists."
+        else
+        echo "!!! The file ${name} does not exist."
+        continue                                          # go to next file name in for loop
+      fi
+
+      # --- convert file into service-file (file automatically copied into working repository) ---
+      # DARWIN Radar files only have one variable: radar_estimated_rain_rate
+      echo "(1) convert data into *.srv-file"
+      cdo -f srv selvar,radar_estimated_rain_rate $path_darwin/$name irt_objects_input_00.srv
+
+      cd iterative_raincell_tracking_laptop
+      echo $PWD
+
+
+    done
+  done  
+done
+
