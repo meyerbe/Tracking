@@ -4,11 +4,13 @@ echo "running tracking script"
 
 # Input path to data
 #read -p "Path to DARWIN data:" path_darwin
-path_darwin=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
+#path_darwin=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
+path_darwin=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
 echo "Data files in $path_darwin"
 
 # Path to copy output to
-path_out=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/Radar_Tracking_Data
+#path_out=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/Radar_Tracking_Data
+path_out=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data
 path_irt=iterative_raincell_tracking_laptop
 
 # year min: 1998; year max: 2017
@@ -111,6 +113,8 @@ for (( year=$year_min; year<=$year_max; year++ ))
       # --- (b2) advection velocity ---
       ./irt_advection_field_v1.x
       cp irt_advection_field.srv $path_out/irt_advection_field_${date}.srv
+      cdo -f nc copy irt_advection_field.srv irt_advection_field.nc
+      cp irt_advection_field.nc $path_out/irt_advection_field_${date}.nc 
       # --- (c2) track identification ---
       ./irt_tracks_v1.x
       cp irt_tracks_output.txt $path_out/irt_tracks_output_${date}.txt
