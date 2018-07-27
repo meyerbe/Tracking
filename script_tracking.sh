@@ -90,23 +90,34 @@ for (( year=$year_min; year<=$year_max; year++ ))
 
       # Run tracking: 1st iteration
       echo "(2) run 1st iteration"
-      # (a1) object identification
+      # --- (a1) object identification ---
       ./irt_objects_v1.x 1
-      cp irt_objects_output.txt $path_out/irt_objects_output_${date}.txt
-      # (b1) advection velocity
+      #cp irt_objects_output.txt $path_out/irt_objects_output_${date}.txt
+      #cp irt_objects_mask.srv $path_out/irt_objects_mask_${date}.srv
+      # --- (b1) advection velocity ---
+      ./irt_advection_field_v1.x
+      #cp irt_advection_field.srv $path_out/irt_advection_field_${date}.srv
+      # --- (c1) track identification ---
+      ./irt_tracks_v1.x
+      #cp irt_tracks_output.txt $path_out/irt_tracks_output_${date}.txt
+      # --- (d1) generate object mask file (*.srv) ---
+      sort -n -k2 irt_tracks_nohead_output.txt > irt_tracks_sorted.txt
+      ./irt_trackmask_v1.x
+      #cp irt_tracks_mask.srv $path_out/irt_tracks_mask_${date}.srv
+
+      echo "(3) run 2nd iteration"
+      # --- (a2) ---
+      ./irt_objects_v1.x 2
+      # --- (b2) advection velocity ---
       ./irt_advection_field_v1.x
       cp irt_advection_field.srv $path_out/irt_advection_field_${date}.srv
-       # (c1) track identification
+      # --- (c2) track identification ---
       ./irt_tracks_v1.x
       cp irt_tracks_output.txt $path_out/irt_tracks_output_${date}.txt
-      # (d1) generate object mask file (*.srv)
+      # --- (d2) generate object mask file (*.srv) ---
       sort -n -k2 irt_tracks_nohead_output.txt > irt_tracks_sorted.txt
       ./irt_trackmask_v1.x
       cp irt_tracks_mask.srv $path_out/irt_tracks_mask_${date}.srv
-
-      echo "(3) run 2nd iteration"
-      # (a2)
-      ./irt_objects_v1.x 2
 
     done
   done  
