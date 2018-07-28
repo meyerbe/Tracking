@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    flag_adv_vel = True
+    flag_adv_vel = True         # read in advection velocity
 
 
 
@@ -47,9 +47,21 @@ def main():
     if flag_adv_vel:
         files_vel = [name for name in os.listdir(path_data) if name[4:13] == 'advection']
         n_files_vel = len(files_vel)
-        print('# files vel: ' + np.str(n_files_vel))
+        print('# files vel: ' + np.str(n_files_vel))        # all files: 5250
         print('')
+        # read in test file
+        path_in = os.path.join(path_data, 'irt_advection_field_20011031.nc')
+        rootgrp = nc.Dataset(path_in, 'r')
+        vel_x = rootgrp.variables['var1']
+        n_time = vel_x.shape[0]
+        n_lev = vel_x.shape[1]
+        n_y = vel_x.shape[2]
+        n_x = vel_x.shape[3]
+
+        # for histogram
         vel_norm_coll = []
+        vel_norm_domain_coll = []
+        vel_norm_domain_daily_coll = []
 
 
     count = 0
@@ -71,16 +83,22 @@ def main():
                 vel_adv[2,:] = var[:]
                 rootgrp.close()
 
-                vel_norm = np.linalg.norm(vel_adv, axis=0)
+                vel_norm = np.linalg.norm(vel_adv, axis=0)      # vel_norm = (6, 1, 2, 2)
+
                 vel_norm_coll = np.append(vel_norm_coll, np.ravel(vel_norm))
-                # print('vel norm: ', vel_norm.shape, vel_adv.shape, np.ravel(vel_norm).shape, 6*1*2*2)
-                # print('vel norm coll: ', type(vel_norm_coll), np.shape(vel_norm_coll))
+                vel_norm_domain_coll = np.append(vel_norm_domain_coll, np.mean(np.mean(vel_norm[:,:,:,:], axis=3), axis=2))
+                vel_norm_domain_daily_coll = np.append(vel_norm_domain_daily_coll,np.mean(vel_norm))
+
+                print('vel norm: ', vel_norm.shape, vel_adv.shape, np.ravel(vel_norm).shape, 6*1*2*2)
+                print('vel norm coll: ', type(vel_norm_coll), np.shape(vel_norm_coll))
 
         count += 1
+    # print('total: ', np.sum(vel_norm_domain_daily_coll))
 
 
     if flag_adv_vel:
-        plot_adv_vel_hist(vel_norm_coll, path_data)
+        plot_adv_vel_hist(vel_norm_coll, vel_norm_domain_coll, vel_norm_domain_daily_coll, path_data)
+
 
 
 
@@ -88,15 +106,35 @@ def main():
 
 # ----------------------------------------------------------------------
 
-def plot_adv_vel_hist(vel_norm_coll, path_data):
+def plot_adv_vel_hist(vel_norm_coll, vel_norm_domain, vel_norm_domain_daily_coll, path_data):
     # plot histogram of advection velocity norm
-    bin_width = 1
+
+    bin_width = 1.
     bin_arr = np.arange(0, 51, bin_width)
     # print('arr', bin_arr)
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(19, 6))
+    plt.subplot(1,3,1)
     plt.hist(vel_norm_coll, bins=bin_arr, rwidth=0.75)
     plt.xlabel('norm(vel)', fontsize=15)
     plt.ylabel('p[norm(vel)]', fontsize=15)
+    plt.title('4-hourly advection per sector (bins='+str(bin_width)+')')
+
+    plt.subplot(1, 3, 2)
+    bin_width = 1.
+    bin_arr = np.arange(0, 31, bin_width)
+    plt.hist(vel_norm_domain, bins=bin_arr, rwidth=0.75)
+    plt.xlabel('norm(<vel>)', fontsize=15)
+    plt.ylabel('p[norm(<vel>)]', fontsize=15)
+    plt.title('4-hourly domain mean advection (bins='+str(bin_width)+')')
+
+    plt.subplot(1, 3, 3)
+    bin_width = 0.1
+    bin_arr = np.arange(0, 6, bin_width)
+    plt.hist(vel_norm_domain_daily_coll, bins=bin_arr, rwidth=0.75)
+    plt.xlabel('norm(<vel>)', fontsize=15)
+    plt.ylabel('p[norm(<vel>)]', fontsize=15)
+    plt.title('daily domain mean advection (bins='+str(bin_width)+')')
+
     plt.suptitle('Histogram: norm advection velocities (bin width = ' + str(bin_width) + ')', fontsize=21)
     plt.savefig(os.path.join(path_data, 'adv_vel_norm_hist.png'))
     return
