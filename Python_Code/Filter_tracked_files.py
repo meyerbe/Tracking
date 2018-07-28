@@ -27,6 +27,10 @@ def main():
     path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data'
     # path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data_test'
 
+    # path_in = os.path.join(path_data, files_vel[0])
+    # rootgrp = nc.Dataset(path_in, 'r')
+    # var = rootgrp.variables['radar_estimated_rain_rate']
+    # rootgrp.close()
 
     ''' (a) Advection Velocity '''
     # Data structure:
@@ -40,19 +44,14 @@ def main():
     #       >> var1 = (time, lev, y, x) = (6, 1, 2, 2)
 
     # (i) read in netcdf-file
-    files_vel = [name for name in os.listdir(path_data) if name[4:13] == 'advection']
-    n_files_vel = len(files_vel)
-    print('# files vel: ' + np.str(n_files_vel))
-    print('')
+    if flag_adv_vel:
+        files_vel = [name for name in os.listdir(path_data) if name[4:13] == 'advection']
+        n_files_vel = len(files_vel)
+        print('# files vel: ' + np.str(n_files_vel))
+        print('')
+        vel_norm_coll = []
 
-    # path_in = os.path.join(path_data, files_vel[0])
-    # rootgrp = nc.Dataset(path_in, 'r')
-    # var = rootgrp.variables['radar_estimated_rain_rate']
-    # rootgrp.close()
 
-    # vel_norm = np.zeros((n_files_vel))
-    vel_norm_coll = []
-    # print('vel norm coll: ', type(vel_norm_coll))
     count = 0
     for path_in in glob.glob(os.path.join(path_data, '*.nc')):
         data_name = ntpath.basename(path_in)[:-4]
@@ -60,22 +59,22 @@ def main():
         print('name: ', data_name)
         print(path_in)
 
-
         if flag_adv_vel:
-            rootgrp = nc.Dataset(path_in, 'r')
-            var = rootgrp.variables['var1']
-            vel_adv = np.ndarray(shape=(np.append(3,var.shape)))
-            vel_adv[0,:] = var[:]
-            var = rootgrp.variables['var2']
-            vel_adv[1,:] = var[:]
-            var = rootgrp.variables['var3']
-            vel_adv[2,:] = var[:]
-            rootgrp.close()
+            if data_name[4:13] == 'advection':
+                rootgrp = nc.Dataset(path_in, 'r')
+                var = rootgrp.variables['var1']
+                vel_adv = np.ndarray(shape=(np.append(3,var.shape)))
+                vel_adv[0,:] = var[:]
+                var = rootgrp.variables['var2']
+                vel_adv[1,:] = var[:]
+                var = rootgrp.variables['var3']
+                vel_adv[2,:] = var[:]
+                rootgrp.close()
 
-            vel_norm = np.linalg.norm(vel_adv, axis=0)
-            vel_norm_coll = np.append(vel_norm_coll, np.ravel(vel_norm))
-            # print('vel norm: ', vel_norm.shape, vel_adv.shape, np.ravel(vel_norm).shape, 6*1*2*2)
-            # print('vel norm coll: ', type(vel_norm_coll), np.shape(vel_norm_coll))
+                vel_norm = np.linalg.norm(vel_adv, axis=0)
+                vel_norm_coll = np.append(vel_norm_coll, np.ravel(vel_norm))
+                # print('vel norm: ', vel_norm.shape, vel_adv.shape, np.ravel(vel_norm).shape, 6*1*2*2)
+                # print('vel norm coll: ', type(vel_norm_coll), np.shape(vel_norm_coll))
 
         count += 1
 
