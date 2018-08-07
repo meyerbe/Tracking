@@ -83,23 +83,24 @@ for (( year=$year_min; year<=$year_max; year++ ))
       fi
 
 
-      cd $path_irt
+      # cd $path_irt
       echo "current directory: $PWD"
 
 
       # --- convert file into service-file (file automatically copied into working repository) ---
       # DARWIN Radar files only have one variable: radar_estimated_rain_rate
       echo "(1) convert data into *.srv-file"
+      echo $path_darwin/$name
       cdo -f srv selvar,radar_estimated_rain_rate $path_darwin/$name $path_irt/irt_objects_input_00.srv
 
 
 
       # Run tracking: 1st iteration
       echo "(2) run 1st iteration"
-
+      
       # --- (a1) object identification ---
       ./irt_objects_v1.x 1
-
+      
       # --- (b1) advection velocity ---
       ./irt_advection_field_v1.x
 
@@ -137,8 +138,11 @@ for (( year=$year_min; year<=$year_max; year++ ))
       cdo -f nc copy irt_tracks_mask.srv irt_tracks_mask.nc
       cp irt_tracks_mask.nc $path_out/irt_tracks_mask_${date}.nc
 
-      # make sure that tracking for next day only run if srv-file is produced
-      rm $path_irt/irt_objects_input_00.srv
+
+
+      # delete file to make sure not always same input is taken
+      rm irt_objects_input_00.srv irt_objects_output.txt irt_objects_mask.srv irt_objects_mask.nc irt_advection_field.srv irt_advection_field.nc irt_tracks_output.txt irt_tracks_nohead_output.txt irt_tracks_sorted.txt irt_tracks_mask.srv irt_tracks_mask.nc
+
     done
   done  
 done
