@@ -24,15 +24,15 @@ def main():
 
 
 
-    path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data'
-    # path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data_test'
+    # path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data'
+    path_data = '/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data_test'
 
     # path_in = os.path.join(path_data, files_vel[0])
     # rootgrp = nc.Dataset(path_in, 'r')
     # var = rootgrp.variables['radar_estimated_rain_rate']
     # rootgrp.close()
 
-    ''' (a) Advection Velocity '''
+    ''' (a) Advection Velocity Histogram'''
     # Data structure:
     # Variables:
     # - time: units = "day as %Y%m%d.%f"    (time = 6)
@@ -42,15 +42,24 @@ def main():
     # - var1(time, lev, y, x); var2(time, lev, y, x); var3(time, lev, y, x);
     #       >> dim(var1) = time * lev * y * x = 6 * 1 * 2 * 2
     #       >> var1 = (time, lev, y, x) = (6, 1, 2, 2)
+    #
+    # Generated Data:
+    # dict_vel_norm_domain[date]:           dictionary >> contains for each date a (6,1)-array for the domain averaged velocity norm in 4-hourly intervals
+    #
+
+    date_arr = []           # array with all data
+
 
     # (i) read in netcdf-file
     if flag_adv_vel:
-        files_vel = [name for name in os.listdir(path_data) if name[4:13] == 'advection']
+        files_vel = [name for name in os.listdir(path_data) if (name[4:13] == 'advection' and name[-3:] == '.nc')]
+        # files_vel = [name for name in os.listdir(path_data) if (name[4:24] == 'advection_field_it1_' and name[-3:] == '.nc')]
         n_files_vel = len(files_vel)
         print('# files vel: ' + np.str(n_files_vel))        # all files: 5250
+        print(files_vel)
         print('')
         # read in test file
-        path_in = os.path.join(path_data, 'irt_advection_field_20011031.nc')
+        path_in = os.path.join(path_data, files_vel[0])
         rootgrp = nc.Dataset(path_in, 'r')
         vel_x = rootgrp.variables['var1']
         n_time = vel_x.shape[0]
@@ -63,50 +72,166 @@ def main():
         vel_norm_domain_coll = []
         vel_norm_domain_daily_coll = []
 
+        dict_vel_norm_domain = {}
+        dict_vel_norm_domain_day = {}
+        # print('dict:', type(dict_vel_norm_domain), dict_vel_norm_domain)
 
-    count = 0
-    for path_in in glob.glob(os.path.join(path_data, '*.nc')):
-        data_name = ntpath.basename(path_in)[:-4]
-        date = data_name[-8:]
-        print('name: ', data_name)
-        print(path_in)
-
-        if flag_adv_vel:
-            if data_name[4:13] == 'advection':
-                rootgrp = nc.Dataset(path_in, 'r')
-                var = rootgrp.variables['var1']
-                vel_adv = np.ndarray(shape=(np.append(3,var.shape)))
-                vel_adv[0,:] = var[:]
-                var = rootgrp.variables['var2']
-                vel_adv[1,:] = var[:]
-                var = rootgrp.variables['var3']
-                vel_adv[2,:] = var[:]
-                rootgrp.close()
-
-                vel_norm = np.linalg.norm(vel_adv, axis=0)      # vel_norm = (6, 1, 2, 2)
-
-                vel_norm_coll = np.append(vel_norm_coll, np.ravel(vel_norm))
-                vel_norm_domain_coll = np.append(vel_norm_domain_coll, np.mean(np.mean(vel_norm[:,:,:,:], axis=3), axis=2))
-                vel_norm_domain_daily_coll = np.append(vel_norm_domain_daily_coll,np.mean(vel_norm))
-
-                print('vel norm: ', vel_norm.shape, vel_adv.shape, np.ravel(vel_norm).shape, 6*1*2*2)
-                print('vel norm coll: ', type(vel_norm_coll), np.shape(vel_norm_coll))
-
-        count += 1
-    # print('total: ', np.sum(vel_norm_domain_daily_coll))
+    # ''' (A) Collect data (general)'''
+    # for path_in in glob.glob(os.path.join(path_data, '*.nc')):
+    #     data_name = ntpath.basename(path_in)[:-3]
+    #     date = data_name[-8:]
+    #     ''' (i) read in advection velocity components & compute norm '''
+    #     if data_name[4:13] == 'advection':
+    #         pass
 
 
+    ''' (A) Test if velocity data different for all days'''
+    test_vel_data(files_vel, path_data, n_time, n_x, n_y)
+
+
+    ''' (B) Collect velocity data '''
     if flag_adv_vel:
-        plot_adv_vel_hist(vel_norm_coll, vel_norm_domain_coll, vel_norm_domain_daily_coll, path_data)
+        for data_name in files_vel:
+            date = data_name[-11:-3]
+            # print(path_in)
+            date_arr = np.append(date_arr, date)
+
+            ''' (i) read in advection velocity components & compute norm '''
+            path_in = os.path.join(path_data, data_name)
+            rootgrp = nc.Dataset(path_in, 'r')
+            print('file: ', data_name, path_in)
+            var = rootgrp.variables['var1']
+
+            if var.shape[0] < 12:
+                print('PROBLEM WITH VAR SHAPE: ' + str(var.shape))
+                continue
+            print('var:      ', var.shape)
+
+            vel_adv = np.ndarray(shape=(np.append(3,var.shape)))
+            vel_adv[0,:] = var[:]
+            var = rootgrp.variables['var2']
+            vel_adv[1,:] = var[:]
+            var = rootgrp.variables['var3']
+            vel_adv[2,:] = var[:]
+            rootgrp.close()
+
+            for i in range(n_time):
+                for y_ in range(n_y):
+                    for x_ in range(n_x):
+                        plt.plot([0,vel_adv[0,i,:,y_,x_]],[0,vel_adv[1,i,:,y_,x_]],'-o')#, label='i, date='+np.str(date))
+
+            vel_norm = np.linalg.norm(vel_adv, axis=0)      # vel_norm = (6, 1, 2, 2)
+
+            # collect for all data >> histogram
+            vel_norm_coll = np.append(vel_norm_coll, np.ravel(vel_norm))
+            # average over domain & collect for all data >> histogram
+            vel_norm_domain_coll = np.append(vel_norm_domain_coll, np.mean(np.mean(vel_norm[:,:,:,:], axis=3), axis=2))
+            # average over domain and day & collect for all data >> histogram
+            vel_norm_domain_daily_coll = np.append(vel_norm_domain_daily_coll,np.mean(vel_norm))
+
+            # dictionary: contains for each date a (12,1)-array for the domain averaged velocity norm in 4-hourly intervals
+            dict_vel_norm_domain[date] = np.mean(np.mean(vel_norm[:,:,:,:], axis=3), axis=2)
+            dict_vel_norm_domain_day[date] = np.mean(vel_norm)
+
+            print('')
+
+    print('')
+    print('vel norm:                   ', vel_norm.shape)
+    print('vel norm coll:              ', vel_norm_coll.shape)
+    print('vel norm domain coll:       ', vel_norm_domain_coll.shape)
+    print('vel norm domain daily coll: ', vel_norm_domain_daily_coll.shape)
+    print('')
+    print(vel_norm_domain_coll)
+    print('')
+    # d = date_arr[0]
+    # print('dict vel norm domain:       len: ', len(dict_vel_norm_domain),     'element shape: ', dict_vel_norm_domain[d].shape)
+    # print('dict vel norm daily domain: len: ', len(dict_vel_norm_domain_day), 'element shape: ', dict_vel_norm_domain_day[d].shape)
+    # print('')
 
 
+    ''' (B) plotting '''
+    if flag_adv_vel:
+        ''' (i) plot velocity histogram '''
+        plot_adv_vel_hist(vel_norm_coll, vel_norm_domain_coll, vel_norm_domain_daily_coll, n_time, path_data)
 
+    # ''' (C) filtering'''
+    # print('')
+    # print('dates: ', date_arr)
+    # print('')
+    #
+    # print(dict_vel_norm_domain)
+    # print('')
+    # print(dict_vel_norm_domain_day)
+    # print('')
+    #
+    # dict_adv_small = {}
+    # if flag_adv_vel:
+    #     # print('...', type(dict_vel_norm_domain[date]))
+    #     # print('small advection: ', dict_adv_small, dict_vel_norm_domain[date_arr[0]])
+    #     for d in date_arr:
+    #         if dict_vel_norm_domain_day[d] > 1.:
+    #             print('big: ' + np.str(dict_vel_norm_domain_day[d]) )
+    #         else:
+    #             print('small: ' + np.str(dict_vel_norm_domain_day[d]) )
+    #         # print(date, np.ravel(dict_vel_norm_domain[d]), np.shape(dict_vel_norm_domain[d]))
+    #     #     if dict_vel_norm_domain[d].any() > 1.:
+    #     #         print('>1: ', np.ravel(dict_vel_norm_domain[d]))
+    #     #         pass
+    #     #     else:
+    #     #         dict_adv_small[d] = dict_vel_norm_domain[d]
+    #     #     print('small advection: ', dict_adv_small)
+    #     # print('small advection: ', dict_adv_small)
+    #
+    #
+    #
+    #
+    #
+    #
 
     return
 
 # ----------------------------------------------------------------------
+''' Test if velocity data different for all days'''
+def test_vel_data(files_vel, path_data, n_time, n_x, n_y):
+    plt.figure()
+    for data_name in files_vel:
+        ''' read in advection velocity components & compute norm '''
+        path_in = os.path.join(path_data, data_name)
+        rootgrp = nc.Dataset(path_in, 'r')
+        var = rootgrp.variables['var1']
 
-def plot_adv_vel_hist(vel_norm_coll, vel_norm_domain, vel_norm_domain_daily_coll, path_data):
+        if var.shape[0] < 12:
+            print('PROBLEM WITH VAR SHAPE: ' + str(var.shape))
+            print('file: ', data_name, path_in)
+            continue
+
+        vel_adv = np.ndarray(shape=(np.append(3, var.shape)))
+        vel_adv[0, :] = var[:]
+        var = rootgrp.variables['var2']
+        vel_adv[1, :] = var[:]
+        var = rootgrp.variables['var3']
+        vel_adv[2, :] = var[:]
+        rootgrp.close()
+
+        for i in range(n_time):
+            for y_ in range(n_y):
+                for x_ in range(n_x):
+                    plt.plot([0, vel_adv[0, i, :, y_, x_]], [0, vel_adv[1, i, :, y_, x_]],
+                             '-o')  # , label='i, date='+np.str(date))
+
+    # plt.legend()
+    plt.xlabel('v_x')
+    plt.ylabel('v_y')
+    d_min = files_vel[0][-8:-3]
+    d_max = files_vel[-1][-8:-3]
+    plt.title('v_x vs. v_y')
+    plt.title('v_x vs. v_y ('+str(d_min)+'-'+str(d_max)+')')
+    plt.savefig(os.path.join(path_data, 'adv_vel_vectorfig.png'))
+
+    return
+# ----------------------------------------------------------------------
+
+def plot_adv_vel_hist(vel_norm_coll, vel_norm_domain, vel_norm_domain_daily_coll, n_time, path_data):
     # plot histogram of advection velocity norm
 
     bin_width = 1.
@@ -117,7 +242,7 @@ def plot_adv_vel_hist(vel_norm_coll, vel_norm_domain, vel_norm_domain_daily_coll
     plt.hist(vel_norm_coll, bins=bin_arr, rwidth=0.75)
     plt.xlabel('norm(vel)', fontsize=15)
     plt.ylabel('p[norm(vel)]', fontsize=15)
-    plt.title('4-hourly advection per sector (bins='+str(bin_width)+')')
+    plt.title(str(np.int(24/n_time))+'-hourly advection per sector (bins='+str(bin_width)+')')
 
     plt.subplot(1, 3, 2)
     bin_width = 1.
@@ -125,7 +250,7 @@ def plot_adv_vel_hist(vel_norm_coll, vel_norm_domain, vel_norm_domain_daily_coll
     plt.hist(vel_norm_domain, bins=bin_arr, rwidth=0.75)
     plt.xlabel('norm(<vel>)', fontsize=15)
     plt.ylabel('p[norm(<vel>)]', fontsize=15)
-    plt.title('4-hourly domain mean advection (bins='+str(bin_width)+')')
+    plt.title(str(np.int(24/n_time))+'-hourly domain mean advection (bins='+str(bin_width)+')')
 
     plt.subplot(1, 3, 3)
     bin_width = 0.1
