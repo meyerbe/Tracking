@@ -5,12 +5,12 @@ echo "running tracking script"
 # Input path to data
 #read -p "Path to DARWIN data:" path_darwin
 #path_darwin=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
-path_darwin=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE
+path_darwin=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/RADAR_ESTIMATED_RAIN_RATE_test
 echo "Data files in $path_darwin"
 
 # Path to copy output to
 #path_out=/Users/bettinameyer/polybox/ClimatePhysics/Copenhagen/Projects/RadarData_Darwin/Radar_Tracking_Data
-path_out=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data
+path_out=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/RadarData_Darwin/Radar_Tracking_Data_test
 path_irt=/Users/bettinameyer/Dropbox/ClimatePhysics/Code/Tracking/iterative_raincell_tracking_laptop
 
 # year min: 1998; year max: 2017
@@ -98,16 +98,16 @@ for (( year=$year_min; year<=$year_max; year++ ))
       # Run tracking: 1st iteration
       echo "(2) run 1st iteration"
       
-      # --- (a1) object identification ---
+      echo " --- (a1) object identification --- "
       ./irt_objects_v1.x 1
       
-      # --- (b1) advection velocity ---
+      echo " --- (b1) advection velocity --- ${date}"
       ./irt_advection_field_v1.x
 
-      # --- (c1) track identification ---
+      echo " --- (c1) track identification --- "
       ./irt_tracks_v1.x
 
-      # --- (d1) generate object mask file (*.srv) ---
+      echo " --- (d1) generate object mask file (*.srv) --- "
       sort -n -k2 irt_tracks_nohead_output.txt > irt_tracks_sorted.txt
       ./irt_trackmask_v1.x
 
@@ -121,7 +121,7 @@ for (( year=$year_min; year<=$year_max; year++ ))
       cdo -f nc copy irt_objects_mask.srv irt_objects_mask.nc
       cp irt_objects_mask.nc $path_out/irt_objects_mask_${date}.nc
 
-      # --- (b2) advection velocity ---
+      echo " --- (b2) advection velocity --- ${date}"
       ./irt_advection_field_v1.x
       cp irt_advection_field.srv $path_out/irt_advection_field_${date}.srv
       cdo -f nc copy irt_advection_field.srv irt_advection_field.nc
